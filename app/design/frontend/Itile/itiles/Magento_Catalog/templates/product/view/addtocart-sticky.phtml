@@ -1,0 +1,126 @@
+<?php
+/**
+ * Hyvä Themes - https://hyva.io
+ * Copyright © Hyvä Themes 2020-present. All rights reserved.
+ * This product is licensed per Magento install
+ * See https://hyva.io/license
+ */
+
+declare(strict_types=1);
+
+use Hyva\Theme\Model\ViewModelRegistry;
+use Hyva\Theme\ViewModel\HyvaCsp;
+use Hyva\Theme\ViewModel\HeroiconsOutline;
+use Hyva\Theme\ViewModel\ProductPage;
+use Magento\Catalog\Model\Product;
+use Magento\Framework\Escaper;
+
+/** @var Escaper $escaper */
+/** @var Product $block */
+/** @var ViewModelRegistry $viewModels */
+/** @var HyvaCsp $hyvaCsp */
+
+/** @var HeroiconsOutline $heroicons */
+$heroicons = $viewModels->require(HeroiconsOutline::class);
+
+/** @var ProductPage $productViewModel */
+$productViewModel = $viewModels->require(ProductPage::class);
+
+/** @var Product $product */
+$product = $productViewModel->getProduct();
+$productImg = $productViewModel->getImage($product, 'product_page_image_small');
+$productType = $product->getTypeId();
+$isMobileOnly = $block->getMobileOnly() !== null
+    ? (bool) $block->getMobileOnly()
+    : true;
+$showAfterAddToCart = $block->getOnlyShowAfterAddToCart() !== null
+    ? (bool) $block->getOnlyShowAfterAddToCart()
+    : true;
+$truncateTitle = $block->getTruncateTitle() !== null
+    ? (bool) $block->getTruncateTitle()
+    : true;
+
+// Position the bar FIXED to the viewport bottom (not sticky inside the flow)
+$classes = 'z-[120] fixed bottom-0 inset-x-0 border-t bg-white text-slate-700';
+if ($isMobileOnly) {
+    $classes .= ' lg:hidden';
+}
+// Keep bar hidden until we pass the ATC button; avoid layout shifts and clicks
+if ($showAfterAddToCart) {
+    $classes .= ' translate-y-full opacity-0 pointer-events-none transition ease-out duration-300';
+}
+?>
+
+<section
+    id="stickyAddToCart"
+    class="<?= $classes ?> data-[sticky=true]:shadow-2xl data-[sticky=true]:border-transparent"
+    aria-label="<?= $escaper->escapeHtmlAttr(__('Add %1 to Cart', $product->getName())) ?>"
+>
+    <div class="container py-6 grid grid-cols-[auto_minmax(0px,1fr)_auto] gap-2 items-center">
+        <img
+            src="<?= $escaper->escapeUrl($productImg->getImageUrl()) ?>"
+            alt="<?= $escaper->escapeHtmlAttr($productImg->getLabel()) ?>"
+            width="<?= $escaper->escapeHtmlAttr(round($productImg->getWidth() / 1.5)) ?>"
+            height="<?= $escaper->escapeHtmlAttr(round($productImg->getHeight() / 1.5)) ?>"
+            loading="lazy"
+        />
+        <div class="text-slate-800 text-lg overflow-hidden">
+            <p class="md:text-xl xl:text-2xl title-font leading-tight <?= $truncateTitle ? 'truncate' : '' ?>">
+                <strong class="font-semibold"><?= $escaper->escapeHtml($product->getName()) ?></strong>
+            </p>
+            <?php if ($productType !== 'grouped' && $productType !== 'bundle'): ?>
+                <div class="relative text-slate-600 [&_.price-label]:sr-only [&_.price-wrapper]:[font-size:inherit] [&_.price-wrapper]:text-inherit">
+                    <?= $block->getChildHtml('price') ?>
+                </div>
+            <?php endif ?>
+        </div>
+        <?php if ($product->isSaleable()): ?>
+            <button
+                type="submit"
+                form="product_addtocart_form"
+                class="shrink-0 gap-1.5 xl:btn-size-lg btn justify-center rounded-md p-3 sm:px-6 text-base shadow-none hover:shadow-lg active:shadow disabled:shadow-none transition
+                    bg-blue-600 text-white border border-transparent hover:bg-blue-700 focus:ring-blue-200 active:bg-blue-700 disabled:bg-slate-600 disabled:text-slate-50 disabled:opacity-70"
+                data-addto="cart"
+            >
+                <?= $heroicons->shoppingCartHtml('', 24, 24, ['aria-hidden' => 'true']); ?>
+                <span class="sr-only sm:not-sr-only">
+                    <?= $block->getData('is_cart_configure')
+                        ? $escaper->escapeHtml(__('Update item'))
+                        : $escaper->escapeHtml(__('Add to Cart')) ?>
+                </span>
+            </button>
+        <?php endif ?>
+    </div>
+    <script>
+        (() => {
+            const form = document.getElementById('product_addtocart_form');
+            if (form) {
+                form.classList.add('[&_:is(input,select,textarea)]:scroll-my-36');
+            }
+
+            const stickyAddToCart = document.getElementById('stickyAddToCart');
+            // Only used for styling (shadow) when the bar is considered "sticky" vs normal
+            stickyAddToCart.dataset.sticky = 'initial';
+            new IntersectionObserver(([e]) => {
+                // For a fixed bar, intersection is generally 1 (fully visible);
+                // We still keep this to allow the data-[sticky=true] variants if design changes.
+                e.target.dataset.sticky = e.intersectionRatio < 1;
+            }, { threshold: 1 }).observe(stickyAddToCart);
+
+            <?php if ($showAfterAddToCart): ?>
+            const addToCartBtn = document.getElementById('product-addtocart-button');
+            if (!addToCartBtn) return;
+            new IntersectionObserver(([entry]) => {
+                const rect = entry.target.getBoundingClientRect();
+                // Show sticky when the ATC button has scrolled sufficiently out of view
+                const hideStickyAtc = Math.round(rect.top + rect.height) > (rect.height / 2);
+
+                stickyAddToCart.classList.toggle('translate-y-full', hideStickyAtc);
+                stickyAddToCart.classList.toggle('opacity-0', hideStickyAtc);
+                stickyAddToCart.classList.toggle('pointer-events-none', hideStickyAtc);
+            }, { threshold: [0, 1] }).observe(addToCartBtn);
+            <?php endif ?>
+        })();
+    </script>
+    <?php $hyvaCsp->registerInlineScript() ?>
+</section>

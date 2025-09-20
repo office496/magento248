@@ -1,0 +1,24 @@
+# Magento generated files
+/var/
+/pub/media/
+/pub/static/*
+!/pub/static/.htaccess
+
+# Composer
+/vendor/
+/composer.lock
+
+# Environment configs
+/app/etc/env.php
+
+# IDE and OS files
+/.idea/
+/*.iml
+.DS_Store
+Thumbs.db
+
+# Node / Tailwind / Hyvä
+/node_modules/
+/tailwind/.cache/
+/tailwind/node_modules/
+/tailwind/public/hot

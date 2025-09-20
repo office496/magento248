@@ -1,0 +1,311 @@
+<?php
+/**
+ * Hyvä Themes - https://hyva.io
+ * Copyright © Hyvä Themes 2020-present. All rights reserved.
+ * This product is licensed per Magento install
+ * See https://hyva.io/license
+ */
+
+declare(strict_types=1);
+
+use Hyva\Theme\Model\ViewModelRegistry;
+use Hyva\Theme\ViewModel\HyvaCsp;
+use Hyva\Theme\ViewModel\StoreConfig;
+use Hyva\Theme\ViewModel\HeroiconsSolid;
+use Magento\Framework\Escaper;
+use Magento\Framework\View\Element\Template;
+
+/** @var Escaper $escaper */
+/** @var Template $block */
+/** @var HyvaCsp $hyvaCsp */
+/** @var ViewModelRegistry $viewModels */
+
+$storeConfig = $viewModels->require(StoreConfig::class);
+$maxItemsToDisplay = $storeConfig->getStoreConfig('checkout/sidebar/max_items_display_count');
+
+/** @var HeroiconsSolid $heroiconsSolid */
+$heroiconsSolid = $viewModels->require(HeroiconsSolid::class);
+
+$miniCartOptionQtyStyle = (string) $block->getQtyStyle() ?: 'default';
+$miniCartOptionShowSku = $block->getShowSku() !== null ? (bool) $block->getShowSku() : false;
+$miniCartOptionQtySaveAuto = $miniCartOptionQtyStyle === 'incrementor' || $miniCartOptionQtyStyle === 'select';
+?>
+
+<script>
+    function initCartDrawer() {
+        return {
+            open: false,
+            closed() { return !this.open },
+            isLoading: false,
+            cart: {},
+            maxItemsToDisplay: <?= (int) $maxItemsToDisplay ?>,
+            itemsCount: 0,
+            showSku: <?= $miniCartOptionShowSku ? 'true' : 'false' ?>,
+            autocompleteNumber: 100,
+            showDetails() { return this.item.options && this.item.options.length || this.showSku; },
+            cartIsEmpty() { return this.itemsCount === 0 },
+            getData() {
+                const data = this.$event.detail.data;
+                if (data.cart) {
+                    this.cart = data.cart;
+                    this.itemsCount = data.cart.items && this.cart.items.length || 0;
+                    this.setCartItems();
+                }
+                this.isLoading = false;
+            },
+            cartItems: [],
+            getItemCountTitle() {
+                return hyva.strf('<?= $escaper->escapeJs(__('%0 of %1 products in cart displayed')) ?>', this.maxItemsToDisplay, this.itemsCount)
+            },
+            shouldShowItemCount() { return this.maxItemsToDisplay && this.maxItemsToDisplay < this.itemsCount; },
+            setCartItems() {
+                this.cartItems = this.cart.items && this.cart.items.sort((a, b) => b.item_id - a.item_id) || [];
+                if (this.maxItemsToDisplay > 0) {
+                    this.cartItems = this.cartItems.slice(0, parseInt(this.maxItemsToDisplay, 10));
+                }
+            },
+            updateItemQty(event) {
+                const form = event.target; this.isLoading = true;
+                hyvaAjaxFormMinicart({ form, redirect: false }, () => { this.isLoading = false; });
+            },
+            deleteItemFromCart() {
+                const itemId = this.item.item_id; const formKey = hyva.getFormKey(); this.isLoading = true;
+                hyvaAjaxFormMinicart({ url: BASE_URL + 'checkout/sidebar/removeItem/', body: 'form_key=' + formKey + '&item_id=' + itemId, message: '<?= $escaper->escapeJs(__('You removed the item.')) ?>' }, () => { this.isLoading = false });
+            },
+            toggleCartDrawer(event) { this.open = event.detail && event.detail.isOpen ? event.detail.isOpen : !this.open; this.calcCartDrawerAnchor(); },
+            openCartDrawer() { this.open = true; this.calcCartDrawerAnchor(); },
+            closeCartDrawer() { this.open = false; },
+            getSectionDataExtraActions() {
+                if (!this.cart.extra_actions) return '';
+                const contentNode = document.createElement('div');
+                contentNode.innerHTML = this.cart.extra_actions;
+                hyva.activateScripts(contentNode);
+                return contentNode.innerHTML;
+            },
+            calcCartDrawerAnchor() {
+                const btn = this.$refs.cartButton ? this.$refs.cartButton.getBoundingClientRect() : {};
+                const scrollOffset = window.pageYOffset || document.documentElement.scrollTop;
+                const btnOffset = btn.top && (btn.top + btn.height);
+                const offsetTop = btnOffset ? `${btnOffset < 0 ? btnOffset + scrollOffset : btnOffset}px` : '1rem';
+                const offsetRight = '.75rem';
+                const drawer = this.$refs.cartDialogContent;
+                drawer.style.setProperty('--cart-drawer-offset-top', offsetTop);
+                drawer.style.setProperty('--cart-drawer-offset-right', offsetRight);
+            },
+            productIsVisibleInSite() { return this.item.product_has_url && this.item.is_visible_in_site_visibility },
+            productIsNotVisibleInSite() { return !this.productIsVisibleInSite() },
+            productIsNotGroupedAndVisibleInSite() { return this.item.product_type !== 'grouped' && this.item.is_visible_in_site_visibility },
+            productAriaLabel() { return hyva.strf(this.$el.dataset.ariaLabel, this.item.product_name) },
+            proceedToCheckout() {
+                this.closeCartDrawer();
+                this.$dispatch('toggle-authentication', { url: '<?= $escaper->escapeUrl($block->getUrl('checkout')) ?>' });
+            },
+            setItemMessage(itemId, message) { this.cartItems.forEach((it) => { if (it.item_id === itemId) it.message = message; }); },
+            cartListeners: {
+                ['@private-content-loaded.window'](event) { this.getData(event.detail.data); },
+                ['@toggle-cart.window'](event) { this.toggleCartDrawer(event); },
+                ['@keydown.window.escape']() { this.$dispatch('toggle-cart', { isOpen: false }) },
+                ['@click.outside']() { this.$dispatch('toggle-cart', { isOpen: false }) },
+                ['@resize.window.debounce']() { if (!this.open) return; this.calcCartDrawerAnchor(); },
+                ['@minicart-error-message.window'](event) { if (!event.detail) return; const { itemId, message } = event.detail; this.setItemMessage(itemId, message); }
+            }
+        }
+    }
+
+    function initCartDrawerQtyBox() {
+        return {
+            initQty: 0, itemQty: 0, prevQty: 0, minValue: 0,
+            init() { this.setQtyDefaults(); this.$watch('item.qty', () => this.setQtyDefaults()); const inputField = this.$root.querySelector('[name="item_qty"]'); this.minValue = inputField ? inputField.min : 0; },
+            updateQty() { const submitEvent = new Event('submit', { cancelable: true }); this.$root.dispatchEvent(submitEvent); },
+            updateQtyValue(e) { this.itemQty = e.target.value; },
+            updateQtyOnFocus() { this.prevQty = this.itemQty; this.itemQty = null; },
+            updateQtyOnBlur() { if (this.itemQty === null) this.itemQty = this.prevQty },
+            setQtyDefaults() { this.initQty = this.item.qty; this.itemQty = this.item.qty; this.prevQty = this.item.qty; },
+            decrement() { this.itemQty <= this.minValue ? this.itemQty = this.minValue : this.itemQty--; },
+            increment() { this.itemQty++; },
+            qtyHasNewValue() { return this.itemQty === this.initQty || this.itemQty === null; }
+        }
+    }
+
+    window.addEventListener('alpine:init', () => {
+        Alpine.data('initCartDrawer', initCartDrawer);
+        Alpine.data('initCartDrawerQtyBox', initCartDrawerQtyBox);
+    }, { once: true })
+
+    async function hyvaAjaxFormMinicart({ form = null, url = '', body = '', redirect = 'default', message = '' } = {}, callback = () => {}) {
+        const formData = body ? body : (form ? new FormData(form) : '');
+        const postUrl = url ? url : (form ? form.action : '');
+        if (!formData || !postUrl) { console.warn('You must provide the form or formData and postUrl!'); return; }
+        const formUenc = hyva.getUenc();
+        const itemId = body ? new URLSearchParams(body).get('item_id') : formData.get('item_id');
+        let bodyUrl = new URLSearchParams(formData);
+        bodyUrl.append('uenc', formUenc);
+        try {
+            const response = await fetch(postUrl, { method: 'POST', body: bodyUrl.toString(), mode: 'cors', credentials: 'include', headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8', 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!response.ok) return form.submit();
+            if (redirect === 'default' && response.redirected) return window.location.href = response.url;
+            else if (redirect !== 'default' && redirect !== false) return window.location.href = redirect;
+            const responseBody = await response.json();
+            if (!responseBody.success) throw responseBody.error_message;
+            window.dispatchEvent(new CustomEvent('reload-customer-section-data'));
+        } catch (error) {
+            window.dispatchEvent(new CustomEvent('minicart-error-message', { detail: { itemId, message: error } }));
+        } finally { callback(); }
+    }
+</script>
+<?php $hyvaCsp->registerInlineScript() ?>
+
+<section
+    id="cart-drawer"
+    aria-labelledby="cart-drawer-title"
+    role="dialog"
+    aria-modal="true"
+    class="absolute z-30 bg-white text-slate-800 shadow-2xl ring-1 ring-black/5 rounded-3xl p-4 sm:p-5 flex flex-col gap-6 overflow-hidden"
+    style="top: var(--cart-drawer-offset-top, 1rem); left: auto; right: .65rem; width: clamp(300px, 70vw, 360px); max-height: clamp(520px, 90vh, 860px); border-radius: 24px;"
+    x-show="open"
+    x-transition.origin.top.right
+    x-ref="cartDialogContent"
+    x-data="initCartDrawer"
+    x-bind="cartListeners"
+    x-cloak
+>
+    <!-- loading overlay -->
+    <div x-show="isLoading" class="absolute inset-0 z-10 grid place-items-center bg-white/60" aria-hidden="true">
+        <svg class="h-6 w-6 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>
+        <span class="sr-only"><?= $escaper->escapeHtml(__('Loading')) ?></span>
+    </div>
+
+    <?= $block->getChildHtml('cart-drawer.top'); ?>
+
+    <!-- Header -->
+    <div class="flex items-start justify-between gap-6 pb-3 border-b border-slate-200">
+        <h2 id="cart-drawer-title" class="text-2xl font-semibold tracking-tight">
+            <?= $escaper->escapeHtml(__('My Cart')) ?>
+            <span class="ml-2 align-middle text-xs text-slate-500" x-show="shouldShowItemCount" x-text="getItemCountTitle"></span>
+        </h2>
+        <button type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" @click="closeCartDrawer" aria-label="<?= $escaper->escapeHtmlAttr(__('Close minicart')) ?>">
+            <?= $heroiconsSolid->xHtml('', 20, 20, ['aria-hidden' => 'true']); ?>
+        </button>
+    </div>
+
+    <?= $block->getChildHtml('cart-drawer.items.before'); ?>
+
+    <!-- Empty state -->
+    <template x-if="cartIsEmpty">
+        <div class="grow grid place-items-center py-8">
+            <div class="text-center">
+                <div class="mx-auto inline-flex h-44 w-44 items-center justify-center rounded-full bg-sky-100 text-blue-400 outline-2 outline-dashed outline-blue-300 outline-offset-8">
+                    <?= $heroiconsSolid->shoppingCartHtml('', 120, 120, ['aria-hidden' => 'true']); ?>
+                </div>
+                <p class="mt-8 text-xl font-semibold"><?= $escaper->escapeHtml(__('Your cart is empty')) ?></p>
+                <p class="text-slate-500"><?= $escaper->escapeHtml(__("Looks like you haven't made your choice yet.")) ?></p>
+            </div>
+        </div>
+    </template>
+
+    <!-- Items list -->
+    <template x-if="itemsCount">
+        <ul class="grow overflow-y-auto overscroll-y-contain divide-y divide-slate-200">
+            <template x-for="item in cartItems">
+                <li class="flex items-start gap-4 md:gap-5 py-5">
+                    <template x-if="productIsVisibleInSite">
+                        <a class="block shrink-0" :href="item.product_url" data-aria-label="<?= $escaper->escapeHtmlAttr(__('Product \"%0\"')) ?>" :title="item.product_name">
+                            <img :src="item.product_image.src" :width="80" :height="80" loading="lazy" :alt="item.product_name" class="h-20 w-20 max-w-none rounded-lg ring-1 ring-black/5 object-cover" />
+                        </a>
+                    </template>
+                    <template x-if="productIsNotVisibleInSite">
+                        <div class="block shrink-0">
+                            <img :src="item.product_image.src" :width="80" :height="80" loading="lazy" :alt="item.product_name" class="h-20 w-20 max-w-none rounded-lg ring-1 ring-black/5 object-cover" />
+                        </div>
+                    </template>
+
+                    <div class="grow space-y-3">
+                        <div class="flex items-start justify-between gap-3">
+                            <p class="text-base font-medium leading-6">
+                                <?php if ($miniCartOptionQtyStyle === 'text'): ?>
+                                    <span x-html="item.qty"></span> x <span x-html="item.product_name"></span>
+                                <?php endif; ?>
+                                <strong x-html="item.product_name" class="font-semibold"></strong>
+                            </p>
+                            <span class="shrink-0 text-right [&_span.price]:font-semibold" x-html="item.product_price"></span>
+                        </div>
+
+                        <template x-if="showDetails">
+                            <dl class="table text-sm">
+                                <template x-if="showSku">
+                                    <div class="table-row">
+                                        <dt class="table-cell min-w-[theme(spacing.16)] pr-2 pb-2 font-normal text-slate-500"><?= $escaper->escapeHtml(__('Sku')) ?></dt>
+                                        <dd class="table-cell pb-2 font-semibold" x-html="item.product_sku"></dd>
+                                    </div>
+                                </template>
+                                <template x-for="option in item.options">
+                                    <div class="table-row">
+                                        <dt class="table-cell min-w-[theme(spacing.16)] pr-2 pb-2 font-normal text-slate-500" x-text="option.label"></dt>
+                                        <dd class="table-cell pb-2 font-semibold" x-html="option.value"></dd>
+                                    </div>
+                                </template>
+                            </dl>
+                        </template>
+
+                        <div class="flex flex-wrap items-center justify-between gap-2 <?= $miniCartOptionQtyStyle === 'text' ? 'justify-end' : 'justify-between' ?>">
+                            <?= $block->getLayout()->getBlock('cart-drawer.qtybox')->setMiniCartOptionQtyStyle($miniCartOptionQtyStyle)->toHtml() ?>
+                            <div class="inline-flex flex-wrap items-center gap-1">
+                                <a :href="item.configure_url" x-show="productIsNotGroupedAndVisibleInSite" class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50" data-aria-label="<?= $escaper->escapeHtmlAttr(__('Edit product \"%0\"')) ?>" :aria-label="productAriaLabel">
+                                    <?= $heroiconsSolid->pencilHtml('', 18, 18, ['aria-hidden' => 'true']); ?>
+                                </a>
+                                <button type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-rose-600 hover:bg-rose-50" @click="deleteItemFromCart" data-aria-label="<?= $escaper->escapeHtmlAttr(__('Remove product \"%0\" from cart')) ?>" :aria-label="productAriaLabel">
+                                    <?= $heroiconsSolid->trashHtml('', 18, 18, ['aria-hidden' => 'true']); ?>
+                                </button>
+                            </div>
+                            <template x-if="item.message"><div class="message error" x-text="item.message"></div></template>
+                        </div>
+                    </div>
+                </li>
+            </template>
+        </ul>
+    </template>
+
+    <?= $block->getChildHtml('cart-drawer.bottom'); ?>
+
+    <!-- Totals & CTAs -->
+    <template x-if="itemsCount">
+        <div class="border-t pt-5">
+            <?= $block->getChildHtml('cart-drawer.totals.before'); ?>
+            <dl class="flex items-center justify-between text-sm font-semibold">
+                <dt class="text-slate-500"><?= $escaper->escapeHtml(__('Subtotal')) ?></dt>
+                <dd x-html="cart.subtotal"></dd>
+            </dl>
+            <div class="mt-5 space-y-3">
+                <a @click.prevent.stop="proceedToCheckout" href="<?= $escaper->escapeUrl($block->getUrl('checkout')) ?>" class="btn btn-primary w-full justify-center">
+                    <?= $escaper->escapeHtml(__('Checkout')) ?>
+                </a>
+                <a href="<?= $escaper->escapeUrl($block->getUrl('checkout/cart')) ?>" class="btn w-full justify-center">
+                    <?= $escaper->escapeHtml(__('View and Edit Cart')) ?>
+                </a>
+                <div x-html="getSectionDataExtraActions"></div>
+                <?= $block->getChildHtml('extra_actions'); ?>
+            </div>
+        </div>
+    </template>
+
+    <template x-if="cartIsEmpty">
+        <div class="border-t pt-6">
+            <button type="button" @click="closeCartDrawer" class="btn btn-primary w-full justify-center">
+                <?= $escaper->escapeHtml(__('Continue Shopping')) ?>
+            </button>
+        </div>
+    </template>
+
+    <?php if ($miniCartOptionQtyStyle === 'select'): ?>
+        <datalist id="minicart-autocomplete">
+            <template x-for="i in autocompleteNumber"><option :value="i"></option></template>
+        </datalist>
+    <?php endif; ?>
+
+    <?= $block->getChildHtml('loading') ?>
+</section>
+
+
+
+
+

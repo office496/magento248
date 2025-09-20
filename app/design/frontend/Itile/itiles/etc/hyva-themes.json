@@ -1,0 +1,5 @@
+{
+"components": {
+"Magento_Theme::html/header.phtml": "@hyva/header/C-stacked::Magento_Theme/templates/html/header.phtml"
+}
+}

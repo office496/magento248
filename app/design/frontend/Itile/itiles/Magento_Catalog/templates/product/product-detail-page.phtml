@@ -1,0 +1,256 @@
+<?php
+declare(strict_types=1);
+
+use Magento\Catalog\Block\Product\View;
+/** @var View $block */
+$product = $block->getProduct();
+$shortDescription = (string) $product->getShortDescription();
+$longDescription  = (string) $product->getDescription();
+$stockItem = $product->getExtensionAttributes()->getStockItem();
+$isInStock = $stockItem ? $stockItem->getIsInStock() : false;
+?>
+<!-- TEMPLATE CUSTOM ITILES HYVA LAYOUT -->
+
+<!-- CONTAINER GLOBAL (SEȚIUNE 1: DOAR title, media, info — GRID 2 COLOANE) -->
+<section class="container mx-auto max-w-screen-2xl px-4 md:px-6">
+  <!-- ELIMINARE BREADCRUMB DUPLICAT -->
+  <div class="py-8 md:py-10 grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-start">
+    <!-- MEDIA (stânga) -->
+    <div class="order-2 md:order-1 bg-white rounded-lg overflow-hidden shadow-sm">
+      <?= $block->getChildHtml('product.media') ?>
+    </div>
+
+    <!-- TITLU + INFO (dreapta) -->
+    <div class="order-1 md:order-2 space-y-8">
+      <!-- TITLU STILIZAT - DOAR ÎN INTERIOR, CU STELE O SINGURĂ DATĂ -->
+      <div class="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4"><?= $block->escapeHtml($product->getName()) ?></h1>
+        
+        <!-- Rating stars - DINAMIC -->
+        <div class="mb-4">
+          <?= $block->getChildHtml('product.info.review') ?>
+        </div>
+        
+        <!-- PREȚ DINAMIC -->
+        <div class="mb-4">
+          <?= $block->getChildHtml('product.price') ?>
+        </div>
+        
+        <!-- Badges-uri DINAMICE -->
+        <div class="flex flex-wrap gap-2 mt-4">
+          <?php if ($isInStock): ?>
+            <span class="bg-green-50 text-green-700 text-xs px-3 py-1 rounded-full font-medium">În stoc</span>
+          <?php else: ?>
+            <span class="bg-red-50 text-red-700 text-xs px-3 py-1 rounded-full font-medium">Stoc epuizat</span>
+          <?php endif; ?>
+          <?php if ($block->getLayout()->getBlock('product.info.shipping')): ?>
+            <?= $block->getChildHtml('product.info.shipping') ?>
+          <?php else: ?>
+            <span class="bg-blue-50 text-blue-700 text-xs px-3 py-1 rounded-full font-medium">Livrare rapidă</span>
+          <?php endif; ?>
+        </div>
+      </div>
+      
+      <div class="md:sticky md:top-24" id="hyva-buybox">
+        <!-- CARD INFO PRODUS -->
+        <div class="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+          <?= $block->getChildHtml('product.info') ?>
+          
+          <!-- BUTON ADD TO CART MAI LAT ȘI CU DISTANȚĂ MAI MARE -->
+          <div class="mt-8" id="main-atc-container">
+            <button
+              type="button"
+              id="main-atc-custom"
+              aria-label="<?= $block->escapeHtmlAttr(__('Adaugă în coș – %1', $product->getName())) ?>"
+              class="w-full px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors shadow-sm text-center"
+              onclick="(function(){var b=document.querySelector('#hyva-buybox form [type=submit], #hyva-buybox button[type=submit]'); if(b){b.click();}})()"
+            >
+              <?= $block->escapeHtml(__('Adaugă în coș')) ?>
+            </button>
+          </div>
+        </div>
+        
+        <!-- USP-uri (Unique Selling Points) - Acestea pot rămâne hardcodate ca elemente de branding -->
+        <div class="grid grid-cols-2 gap-4 mt-8">
+          <div class="flex items-center gap-2 text-sm bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <span>Calitate premium</span>
+          </div>
+          <div class="flex items-center gap-2 text-sm bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <span>Garanție 24 luni</span>
+          </div>
+          <div class="flex items-center gap-2 text-sm bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <span>Livrare gratuită</span>
+          </div>
+          <div class="flex items-center gap-2 text-sm bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <span>Retur în 30 zile</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- OPȚIUNI / WRAPPER BOTTOM (Hyvä) -->
+<section class="container mx-auto max-w-screen-2xl px-4 md:px-6">
+  <div class="py-6 md:py-8 border-t border-gray-200">
+    <?= $block->getChildHtml('product_options_wrapper_bottom') ?>
+  </div>
+</section>
+
+<!-- SECȚIUNE INFORMAȚII PRODUS CU TABURI - PĂSTRĂM TABUL DE DESCRIERE STANDARD -->
+<section class="bg-gray-50 py-10 md:py-14 mt-8">
+  <div class="container mx-auto max-w-screen-2xl px-4 md:px-6" x-data="{ activeTab: 'descriere' }">
+    <!-- Navigare taburi - DINAMICĂ -->
+    <div class="flex flex-wrap border-b border-gray-200 mb-8">
+      <button 
+        @click="activeTab = 'descriere'" 
+        :class="activeTab === 'descriere' ? 'border-b-2 border-blue-600 -mb-px font-medium' : 'text-gray-500 hover:text-gray-700'"
+        class="mr-8 py-3 text-sm md:text-base focus:outline-none transition-colors"
+      >
+        Descriere
+      </button>
+      <button 
+        @click="activeTab = 'specificatii'" 
+        :class="activeTab === 'specificatii' ? 'border-b-2 border-blue-600 -mb-px font-medium' : 'text-gray-500 hover:text-gray-700'"
+        class="mr-8 py-3 text-sm md:text-base focus:outline-none transition-colors"
+      >
+        Specificații
+      </button>
+      <?php if ($block->getLayout()->getBlock('review_list')): ?>
+      <button 
+        @click="activeTab = 'recenzii'" 
+        :class="activeTab === 'recenzii' ? 'border-b-2 border-blue-600 -mb-px font-medium' : 'text-gray-500 hover:text-gray-700'"
+        class="py-3 text-sm md:text-base focus:outline-none transition-colors"
+      >
+        Recenzii
+      </button>
+      <?php endif; ?>
+    </div>
+    
+    <!-- Conținut taburi -->
+    <div class="bg-white rounded-lg p-6 md:p-8 shadow-sm">
+      <!-- Tab Descriere -->
+      <div x-show="activeTab === 'descriere'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+        <?= $block->getChildHtml('product.info.details'); ?>
+      </div>
+      
+      <!-- Tab Specificații -->
+      <div x-show="activeTab === 'specificatii'" x-cloak x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+        <?= $block->getChildHtml('product.attributes'); ?>
+      </div>
+      
+      <!-- Tab Recenzii - CONDIȚIONAL -->
+      <?php if ($block->getLayout()->getBlock('review_list')): ?>
+      <div x-show="activeTab === 'recenzii'" x-cloak x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+        <div class="space-y-8">
+          <?= $block->getChildHtml('review_list') ?>
+          <?= $block->getChildHtml('review_form') ?>
+        </div>
+      </div>
+      <?php endif; ?>
+    </div>
+  </div>
+</section>
+
+<!-- RELATED / UPSELL -->
+<section class="container mx-auto max-w-screen-2xl px-4 md:px-6">
+  <div class="py-10 md:py-14 border-t border-gray-200 space-y-10 md:space-y-14">
+    <!-- Eliminăm titlul și prețul produsului principal care apare în blocurile related/upsell -->
+    <?= $block->getChildHtml('related') ?>
+    <?= $block->getChildHtml('upsell') ?>
+  </div>
+</section>
+
+<!-- BARĂ CTA MOBIL - APARE DOAR CÂND UTILIZATORUL SCROLLEAZĂ DINCOLO DE BUTONUL PRINCIPAL -->
+<div id="mobile-atc-bar" 
+     class="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-200 p-3 md:hidden shadow-lg transform translate-y-full transition-transform duration-300"
+     x-data="{ 
+       isVisible: false,
+       checkPosition() {
+         if (!document.getElementById('main-atc-container')) return;
+         
+         const atcRect = document.getElementById('main-atc-container').getBoundingClientRect();
+         const windowHeight = window.innerHeight;
+         
+         // Arată bara când butonul principal nu mai este vizibil (a ieșit din viewport)
+         if (atcRect.bottom < 0 || atcRect.top > windowHeight) {
+           this.isVisible = true;
+         } else {
+           this.isVisible = false;
+         }
+       },
+       init() {
+         window.addEventListener('scroll', () => this.checkPosition());
+         window.addEventListener('resize', () => this.checkPosition());
+         this.checkPosition();
+       }
+     }" 
+     x-init="init()" 
+     :class="isVisible ? 'translate-y-0' : 'translate-y-full'">
+  <div class="flex items-center justify-between gap-3">
+    <div class="text-sm">
+      <div class="font-semibold"><?= $block->escapeHtml($product->getName()) ?></div>
+      <div class="text-gray-500"><?= $block->escapeHtml(__('Adaugă rapid în coș')) ?></div>
+    </div>
+    <button
+      type="button"
+      aria-label="<?= $block->escapeHtmlAttr(__('Adaugă în coș – %1', $product->getName())) ?>"
+      class="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors shadow-sm"
+      onclick="(function(){var b=document.querySelector('#hyva-buybox form [type=submit], #hyva-buybox button[type=submit]'); if(b){b.click();}})()"
+    >
+      <?= $block->escapeHtml(__('Adaugă în coș')) ?>
+    </button>
+  </div>
+</div>
+
+<script>
+  (function () {
+    // pune id pe ATC din buybox pentru bara mobilă
+    var atc = document.querySelector('#hyva-buybox form [type=submit], #hyva-buybox button[type=submit]');
+    if (atc && !atc.id) atc.id = 'main-atc';
+    
+    // Ascunde butonul ATC original dacă există butonul nostru custom
+    if (atc && document.getElementById('main-atc-custom')) {
+      atc.style.display = 'none';
+    }
+    
+    // Ascunde orice container de preț duplicat din partea de jos a paginii
+    document.addEventListener('DOMContentLoaded', function() {
+      // Găsește și ascunde orice preț duplicat care ar putea fi injectat de alte blocuri
+      const productInfoSection = document.querySelector('#hyva-buybox').closest('section');
+      const allPriceElements = document.querySelectorAll('.price-box');
+      
+      allPriceElements.forEach(function(priceElement) {
+        const parentSection = priceElement.closest('section');
+        if (parentSection && parentSection !== productInfoSection && !parentSection.classList.contains('product-items')) {
+          // Ascunde containerul părinte al prețului dacă nu face parte din lista de produse (related/upsell)
+          const priceContainer = priceElement.closest('.product-info-price, .product-info-main');
+          if (priceContainer) {
+            priceContainer.style.display = 'none';
+          }
+        }
+      });
+      
+      // Ascunde orice titluri duplicate
+      const productTitle = document.querySelector('h1.page-title');
+      if (productTitle) {
+        const mainTitle = document.querySelector('#hyva-buybox').closest('section').querySelector('h1');
+        if (mainTitle !== productTitle) {
+          productTitle.closest('.page-title-wrapper, .product-info-main').style.display = 'none';
+        }
+      }
+    });
+  })();
+</script>

@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<!--
+  Itile/itiles — catalog_product_view.xml  
+  Layout pentru tema Hyvä cu bara sticky mobilă păstrată
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+  <body>
+    <!-- BARA STICKY PENTRU MOBIL (păstrată) -->
+    <referenceContainer name="main.content">
+      <block
+          class="Magento\Catalog\Block\Product\View"
+          name="product.info.addtocart.sticky"
+          template="Magento_Catalog::product/view/addtocart-sticky.phtml"
+          after="columns"
+      >
+        <arguments>
+          <argument name="mobile_only" xsi:type="boolean">false</argument>
+          <argument name="truncate_title" xsi:type="boolean">true</argument>
+          <argument name="only_show_after_add_to_cart" xsi:type="boolean">true</argument>
+        </arguments>
+        <block
+            class="Magento\Catalog\Block\Product\Price"
+            name="product.info.price.sticky"
+            template="Magento_Catalog::product/view/price.phtml"
+            as="price"
+        />
+      </block>
+    </referenceContainer>
+
+    <!-- MOVE cerut: plasăm product.media după product.title în block-ul product.detail.page -->
+    <referenceBlock name="product.detail.page">
+      <move element="product.media" destination="product.detail.page" after="product.title"/>
+    </referenceBlock>
+  </body>
+</page>
+
+
+
+

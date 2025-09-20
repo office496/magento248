@@ -1,0 +1,13 @@
+<div class="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4 py-8">
+        <?= $block->getChildHtml('footer_column_1') ?>
+        <?= $block->getChildHtml('footer_column_2') ?>
+        <?= $block->getChildHtml('footer_column_3') ?>
+        <?= $block->getChildHtml('footer_column_4') ?>
+    </div>
+
+    <div class="border-t pt-6 flex flex-wrap items-center justify-center md:justify-between gap-4">
+        <?= $block->getChildHtml('footer-payment') ?>
+    </div>
+</div>
+
