@@ -1,0 +1,18 @@
+/* Base Tailwind layer for theme (generated) */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { @apply antialiased; }
+  body {
+    @apply bg-neutral-100 text-neutral-800 font-sans leading-normal;
+  }
+  a { @apply text-brand-accent hover:underline; }
+}
+
+@layer components {
+  .site-banner {
+    @apply w-full bg-brand-banner text-brand font-medium text-sm py-1 text-center;
+  }
+}

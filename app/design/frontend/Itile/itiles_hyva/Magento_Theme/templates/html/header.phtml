@@ -1,0 +1,80 @@
+<?php
+/**
+ * Hyvä Themes - Header adapted for ITILES Figma
+ */
+
+declare(strict_types=1);
+
+use Hyva\Theme\Model\ViewModelRegistry;
+use Hyva\Theme\ViewModel\HeroiconsOutline;
+use Hyva\Theme\ViewModel\HeroiconsSolid;
+use Hyva\Theme\ViewModel\HyvaCsp;
+use Hyva\Theme\ViewModel\StoreConfig;
+use Magento\Checkout\Block\Cart\Sidebar as SidebarCart;
+use Magento\Framework\Escaper;
+use Magento\Framework\View\Element\Template;
+
+/** @var Escaper $escaper */
+/** @var Template $block */
+/** @var ViewModelRegistry $viewModels */
+/** @var HyvaCsp $hyvaCsp */
+
+/** @var HeroiconsOutline $heroicons */
+$heroicons = $viewModels->require(HeroiconsOutline::class);
+
+/** @var HeroiconsSolid $heroiconsSolid */
+$heroiconsSolid = $viewModels->require(HeroiconsSolid::class);
+
+/** @var StoreConfig $storeConfig */
+$storeConfig = $viewModels->require(StoreConfig::class);
+$showMiniCart = $storeConfig->getStoreConfig(SidebarCart::XML_PATH_CHECKOUT_SIDEBAR_DISPLAY);
+
+?>
+<?php $hyvaCsp->registerInlineScript() ?>
+
+<header id="header" class="z-30 sticky top-0 backdrop-blur-sm bg-white/80 shadow-header" x-data="initHeader" @private-content-loaded.window="getData" @resize.window.debounce="checkHeaderSize">
+  <!-- Figma-based header markup (Tailwind classes only). PHP logic and childHtml retained. -->
+  <div class="w-full inline-flex flex-col justify-start items-start overflow-hidden">
+    <div class="self-stretch px-56 py-2 bg-brand-banner inline-flex justify-center items-center gap-1">
+      <div class="text-center justify-start">
+        <span class="text-neutral-50 text-sm font-bold leading-tight">Autumn Sale are reduceri de pana la </span>
+        <span class="text-rose-700 text-sm font-bold leading-tight">70%</span>
+        <span class="text-neutral-50 text-sm font-bold leading-tight"> la 800 articole cu livrare din stoc</span>
+      </div>
+      <div class="w-4 h-4 relative overflow-hidden">
+        <div class="w-2.5 h-1 left-[6px] top-[12.67px] absolute origin-top-left -rotate-90 outline outline-2 outline-offset-[-1px] outline-blue-300"></div>
+      </div>
+    </div>
+
+    <div class="self-stretch h-20 relative bg-white overflow-hidden">
+      <div class="container mx-auto">
+        <div class="grid grid-cols-12 items-center h-20">
+          <div class="col-span-2 flex items-center">
+            <?= $block->getChildHtml('logo'); ?>
+          </div>
+
+          <div class="col-span-8 flex justify-center">
+            <form action="<?= $block->getUrl('catalogsearch/result') ?>" method="get" class="search-group inline-flex items-center gap-2 w-full max-w-[510px]">
+              <div class="flex-1">
+                <input type="search" name="q" placeholder="Cauta gresie faianta sanitare mobilier" class="w-full text-slate-700 text-base font-normal leading-normal bg-white border border-slate-300 rounded-l-md px-4 py-2" />
+              </div>
+              <button type="submit" class="search-btn inline-flex items-center justify-center bg-primary text-white rounded-r-md px-4 py-2" aria-label="Search">
+                <?= $heroiconsSolid->searchHtml('w-5 h-5', 20, 20, ['aria-hidden' => 'true']) ?>
+              </button>
+            </form>
+          </div>
+
+          <div class="col-span-2 ml-auto flex items-center justify-end gap-3">
+            <?= $block->getChildHtml('additional') ?>
+            <?= $block->getChildHtml('customer') ?>
+            <?php if ($showMiniCart): ?>
+              <?= $block->getChildHtml('minicart') ?>
+            <?php endif; ?>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <?= $block->getChildHtml('mobilemenu') ?>
+</header>

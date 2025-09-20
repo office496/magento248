@@ -1,0 +1,24 @@
+@layer utilities {
+  .bg-container { @apply bg-neutral-50; }
+  .bg-container-lighter { @apply bg-neutral-100; }
+}
+@layer utilities {
+  .bg-container-darker { @apply bg-neutral-300; }
+}
+@layer utilities {
+  /* container backgrounds */
+  .bg-container { @apply bg-neutral-50; }
+  .bg-container-lighter { @apply bg-neutral-100; }
+  .bg-container-darker { @apply bg-neutral-200; }
+
+  /* text colors */
+  .text-secondary { @apply text-neutral-700; }
+  .text-secondary-darker { @apply text-neutral-800; }
+
+  /* borders */
+  .border-container-darker { @apply border-neutral-200; }
+
+  /* buttons (existing components classes may rely on these) */
+  .btn { @apply inline-flex items-center justify-center px-3 py-1 border rounded-md; }
+  .btn-primary { @apply bg-brand-accent text-white; }
+}

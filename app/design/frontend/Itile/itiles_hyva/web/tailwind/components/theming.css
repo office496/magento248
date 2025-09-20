@@ -1,0 +1,26 @@
+body {
+    @apply bg-container;
+}
+
+[x-cloak] {
+    display: none !important;
+}
+
+.card {
+    @apply p-4 rounded-sm bg-container-lighter shadow;
+}
+
+.card-interactive {
+    &:hover {
+        @apply bg-container;
+    }
+}
+
+@layer components {}
+@layer components {}
+
+@layer components {
+  .site-banner {
+    @apply w-full text-center text-sm py-3 bg-brand-banner/95 text-black/90;
+  }
+}

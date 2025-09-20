@@ -1,24 +1,29 @@
-# Magento generated files
+# Magento generated
 /var/
-/pub/media/
+/generated/
 /pub/static/*
 !/pub/static/.htaccess
+/pub/media/catalog/product/cache/
+/pub/media/tmp/*
+/pub/media/wysiwyg/.thumbs/
+/pub/media/_cache/
 
 # Composer
 /vendor/
 /composer.lock
 
-# Environment configs
+# Env secrets
 /app/etc/env.php
-
-# IDE and OS files
-/.idea/
-/*.iml
-.DS_Store
-Thumbs.db
 
 # Node / Tailwind / Hyvä
 /node_modules/
-/tailwind/.cache/
-/tailwind/node_modules/
-/tailwind/public/hot
+/app/design/**/web/tailwind/build/
+/app/design/**/web/tailwind/generated/
+
+# IDE / OS
+/.idea/
+/.vscode/
+.DS_Store
+Thumbs.db
+
+
