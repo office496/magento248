@@ -1,0 +1,8 @@
+{
+  "name": "magento248-meta",
+  "private": true,
+  "scripts": {
+    "dev": "cd app/design/frontend/Itile/itiles/web/tailwind && npm run dev",
+    "build": "cd app/design/frontend/Itile/itiles/web/tailwind && npm run build"
+  }
+}
